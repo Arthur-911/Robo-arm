@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>kine-rs: High-Performance Robotic Arm Kinematics & IK Simulator</title>
+    <meta name="description" content="High-performance 2D/3D Robotic Arm Kinematics & Inverse Kinematics Simulator in pure Rust & WebAssembly" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦾</text></svg>" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #12141a;
+            color: #d8dee9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #kine_canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #loading_screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.4s ease-out;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading_screen">
+        <div class="spinner"></div>
+        <h2>Loading kine-rs WebAssembly...</h2>
+        <p>Initializing pure Rust robotics engine...</p>
+    </div>
+
+    <canvas id="kine_canvas"></canvas>
+
+    <script>
+        // Hide loading indicator when canvas receives rendering focus
+        const observer = new MutationObserver(() => {
+            const screen = document.getElementById("loading_screen");
+            if (screen) {
+                screen.style.opacity = "0";
+                setTimeout(() => screen.remove(), 400);
+            }
+        });
+        window.addEventListener("DOMContentLoaded", () => {
+            const canvas = document.getElementById("kine_canvas");
+            if (canvas) {
+                observer.observe(canvas, { attributes: true });
+            }
+        });
+    </script>
+</body>
+</html>
