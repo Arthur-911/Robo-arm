@@ -104,7 +104,8 @@ fn test_full_6d_pose_ik_convergence() {
     let mut arm = industrial_6dof();
     arm.set_actuated_joint_positions(&[0.1, 0.4, -0.6, 0.2, 0.1, 0.0]);
     let original_ee = arm.end_effector_pose();
-    let target_pos = Point3::from(original_ee.translation.vector) + nalgebra::Vector3::new(0.04, -0.04, 0.02);
+    let target_pos =
+        Point3::from(original_ee.translation.vector) + nalgebra::Vector3::new(0.04, -0.04, 0.02);
     let target_rot = original_ee.rotation;
 
     let params = IKSolverParams {
@@ -128,8 +129,7 @@ fn test_full_6d_pose_ik_convergence() {
     assert!(
         sol.converged,
         "Full 6D Pose IK should converge smoothly, pos_err={}, rot_err={}",
-        sol.residual_position_error,
-        sol.residual_orientation_error
+        sol.residual_position_error, sol.residual_orientation_error
     );
     assert!(sol.residual_position_error < 2e-3);
     assert!(sol.residual_orientation_error < 1e-2);
@@ -165,4 +165,3 @@ fn test_adaptive_damping_near_singularity() {
         assert!(!q.is_infinite());
     }
 }
-

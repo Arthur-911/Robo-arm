@@ -39,9 +39,12 @@ pub struct CollisionReport {
     pub details: Vec<String>,
 }
 
-/// Extracts bounding capsules for each robot link in the current configuration into an existing vector.
-pub fn get_robot_link_capsules_into(robot: &RobotArm, capsules: &mut Vec<LinkCapsule>, poses: &mut Vec<nalgebra::Isometry3<f64>>) {
-    robot.forward_kinematics_into(poses);
+/// Extracts bounding capsules for each robot link from precomputed FK poses.
+pub fn get_robot_link_capsules_from_poses(
+    robot: &RobotArm,
+    poses: &[nalgebra::Isometry3<f64>],
+    capsules: &mut Vec<LinkCapsule>,
+) {
     capsules.clear();
     let num_links = robot.links.len();
     capsules.reserve(num_links);
@@ -69,6 +72,16 @@ pub fn get_robot_link_capsules_into(robot: &RobotArm, capsules: &mut Vec<LinkCap
     }
 }
 
+/// Extracts bounding capsules for each robot link in the current configuration into an existing vector.
+pub fn get_robot_link_capsules_into(
+    robot: &RobotArm,
+    capsules: &mut Vec<LinkCapsule>,
+    poses: &mut Vec<nalgebra::Isometry3<f64>>,
+) {
+    robot.forward_kinematics_into(poses);
+    get_robot_link_capsules_from_poses(robot, poses, capsules);
+}
+
 /// Extracts bounding capsules for each robot link in the current configuration.
 pub fn get_robot_link_capsules(robot: &RobotArm) -> Vec<LinkCapsule> {
     let mut capsules = Vec::with_capacity(robot.links.len());
@@ -93,9 +106,12 @@ pub fn segment_to_box_distance(
     let mut candidates = [0.0; 9];
     let mut count = 0;
 
-    candidates[count] = 0.0; count += 1;
-    candidates[count] = 0.5; count += 1;
-    candidates[count] = 1.0; count += 1;
+    candidates[count] = 0.0;
+    count += 1;
+    candidates[count] = 0.5;
+    count += 1;
+    candidates[count] = 1.0;
+    count += 1;
 
     for k in 0..3 {
         let d_k = dir[k];
@@ -205,14 +221,49 @@ pub fn segment_to_segment_distance(
     d_p.norm()
 }
 
-/// Evaluates self-collisions and obstacle collisions for the robot.
-pub fn check_collisions(robot: &RobotArm, obstacles: &[ObstacleBox]) -> CollisionReport {
-    let mut report = CollisionReport::default();
-    let capsules = get_robot_link_capsules(robot);
+/// Fast early-exit collision check against capsules and obstacles.
+pub fn is_in_collision_with_capsules(capsules: &[LinkCapsule], obstacles: &[ObstacleBox]) -> bool {
     let n = capsules.len();
 
     // 1. Check Link-to-Obstacle Collisions
-    for cap in &capsules {
+    for cap in capsules {
+        for obs in obstacles {
+            let (dist, _) = segment_to_box_distance(cap.start, cap.end, obs.center, obs.half_size);
+            if dist <= cap.radius {
+                return true;
+            }
+        }
+    }
+
+    // 2. Check Link-to-Link Self-Collisions (Non-adjacent links)
+    for i in 0..n {
+        for j in (i + 2)..n {
+            let dist = segment_to_segment_distance(
+                capsules[i].start,
+                capsules[i].end,
+                capsules[j].start,
+                capsules[j].end,
+            );
+            let combined_radius = capsules[i].radius + capsules[j].radius;
+            if dist <= combined_radius {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Evaluates self-collisions and obstacle collisions for given link capsules.
+pub fn check_collisions_with_capsules(
+    capsules: &[LinkCapsule],
+    obstacles: &[ObstacleBox],
+) -> CollisionReport {
+    let mut report = CollisionReport::default();
+    let n = capsules.len();
+
+    // 1. Check Link-to-Obstacle Collisions
+    for cap in capsules {
         for obs in obstacles {
             let (dist, _) = segment_to_box_distance(cap.start, cap.end, obs.center, obs.half_size);
             if dist <= cap.radius {
@@ -260,4 +311,48 @@ pub fn check_collisions(robot: &RobotArm, obstacles: &[ObstacleBox]) -> Collisio
     }
 
     report
+}
+
+/// Evaluates self-collisions and obstacle collisions for the robot's current configuration.
+pub fn check_collisions(robot: &RobotArm, obstacles: &[ObstacleBox]) -> CollisionReport {
+    let capsules = get_robot_link_capsules(robot);
+    check_collisions_with_capsules(&capsules, obstacles)
+}
+
+/// Fast verification if a candidate joint configuration satisfies limits and is collision-free.
+pub fn is_configuration_valid(robot: &RobotArm, q: &[f64], obstacles: &[ObstacleBox]) -> bool {
+    // 1. Joint limit check
+    let mut q_idx = 0;
+    for joint in &robot.joints {
+        if joint.is_actuated() {
+            if q_idx >= q.len() {
+                return false;
+            }
+            let val = q[q_idx];
+            if let Some((min, max)) = joint.limits {
+                if val < min || val > max {
+                    return false;
+                }
+            }
+            q_idx += 1;
+        }
+    }
+
+    // 2. Collision check
+    let poses = robot.forward_kinematics_with_q(q);
+    let mut capsules = Vec::with_capacity(robot.links.len());
+    get_robot_link_capsules_from_poses(robot, &poses, &mut capsules);
+    !is_in_collision_with_capsules(&capsules, obstacles)
+}
+
+/// Evaluates full collision report for a candidate joint configuration.
+pub fn check_collisions_for_q(
+    robot: &RobotArm,
+    q: &[f64],
+    obstacles: &[ObstacleBox],
+) -> CollisionReport {
+    let poses = robot.forward_kinematics_with_q(q);
+    let mut capsules = Vec::with_capacity(robot.links.len());
+    get_robot_link_capsules_from_poses(robot, &poses, &mut capsules);
+    check_collisions_with_capsules(&capsules, obstacles)
 }

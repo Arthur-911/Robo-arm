@@ -6,7 +6,7 @@ authors = ["Arthur & Antigravity"]
 description = "High-performance 2D/3D Robotic Arm Kinematics & Inverse Kinematics Simulator in Rust (Desktop & WebAssembly)"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/example/kine-rs"
+repository = "https://github.com/Arthur-911/Robo-arm"
 keywords = ["robotics", "inverse-kinematics", "fabrik", "jacobian", "urdf"]
 categories = ["science::robotics", "simulation", "gui", "wasm"]
 

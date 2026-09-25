@@ -1,11 +1,11 @@
-use nalgebra::{Point3, UnitQuaternion, Vector3};
+use kine_rs::export::{export_to_gcode_csv, export_to_python, export_to_ros2};
 use kine_rs::kinematics::{
     check_collisions, compute_gravity_torques, compute_manipulability, ObstacleBox,
 };
 use kine_rs::presets;
-use kine_rs::workcell::{EOATType, ToolState, WorkpieceManager};
-use kine_rs::export::{export_to_gcode_csv, export_to_python, export_to_ros2};
 use kine_rs::trajectory::TrajectoryPlanner;
+use kine_rs::workcell::{EOATType, ToolState, WorkpieceManager};
+use nalgebra::{Point3, UnitQuaternion, Vector3};
 
 #[test]
 fn test_yoshikawa_manipulability() {
@@ -22,8 +22,14 @@ fn test_yoshikawa_manipulability() {
 fn test_joint_gravity_dynamics() {
     let robot = presets::industrial_6dof();
     let report_no_payload = compute_gravity_torques(&robot, 0.0);
-    assert_eq!(report_no_payload.joint_torques_nm.len(), robot.total_joints());
-    assert_eq!(report_no_payload.load_percentages.len(), robot.total_joints());
+    assert_eq!(
+        report_no_payload.joint_torques_nm.len(),
+        robot.total_joints()
+    );
+    assert_eq!(
+        report_no_payload.load_percentages.len(),
+        robot.total_joints()
+    );
 
     // With a 10 kg payload, base shoulder joints should experience higher torque
     let report_heavy = compute_gravity_torques(&robot, 10.0);
@@ -34,9 +40,17 @@ fn test_joint_gravity_dynamics() {
 fn test_collision_detection() {
     let robot = presets::industrial_6dof();
     let obstacles = vec![
-        ObstacleBox::new("Table", Point3::new(0.4, 0.0, -0.02), Vector3::new(0.3, 0.3, 0.02)),
+        ObstacleBox::new(
+            "Table",
+            Point3::new(0.4, 0.0, -0.02),
+            Vector3::new(0.3, 0.3, 0.02),
+        ),
         // Place an obstacle right at the end effector
-        ObstacleBox::new("Obstacle", robot.end_effector_position(), Vector3::new(0.1, 0.1, 0.1)),
+        ObstacleBox::new(
+            "Obstacle",
+            robot.end_effector_position(),
+            Vector3::new(0.1, 0.1, 0.1),
+        ),
     ];
 
     let report = check_collisions(&robot, &obstacles);
@@ -50,9 +64,11 @@ fn test_workpiece_pick_and_place() {
     assert_eq!(mgr.workpieces.len(), 3);
     assert!(mgr.currently_held_id.is_none());
 
-    let mut tool = ToolState::default();
-    tool.tool_type = EOATType::ParallelGripper;
-    tool.gripper_opening = 0.8; // Open
+    let mut tool = ToolState {
+        tool_type: EOATType::ParallelGripper,
+        gripper_opening: 0.8, // Open
+        ..Default::default()
+    };
     assert!(!tool.is_gripping());
 
     let cube_pos = mgr.workpieces[0].position;

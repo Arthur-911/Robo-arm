@@ -356,8 +356,20 @@ fn add_box_3d(
     let v_xp2 = x_plus + axis_y * half_size.y + axis_z * half_size.z;
     let v_xp3 = x_plus - axis_y * half_size.y + axis_z * half_size.z;
     add_quad_3d(
-        primitives, camera, rect, v_xp0, v_xp1, v_xp2, v_xp3, axis_x, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_xp0,
+        v_xp1,
+        v_xp2,
+        v_xp3,
+        axis_x,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 
     // -X face
@@ -367,8 +379,20 @@ fn add_box_3d(
     let v_xm2 = x_minus - axis_y * half_size.y + axis_z * half_size.z;
     let v_xm3 = x_minus + axis_y * half_size.y + axis_z * half_size.z;
     add_quad_3d(
-        primitives, camera, rect, v_xm0, v_xm1, v_xm2, v_xm3, -axis_x, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_xm0,
+        v_xm1,
+        v_xm2,
+        v_xm3,
+        -axis_x,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 
     // +Y face
@@ -378,8 +402,20 @@ fn add_box_3d(
     let v_yp2 = y_plus - axis_x * half_size.x + axis_z * half_size.z;
     let v_yp3 = y_plus + axis_x * half_size.x + axis_z * half_size.z;
     add_quad_3d(
-        primitives, camera, rect, v_yp0, v_yp1, v_yp2, v_yp3, axis_y, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_yp0,
+        v_yp1,
+        v_yp2,
+        v_yp3,
+        axis_y,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 
     // -Y face
@@ -389,8 +425,20 @@ fn add_box_3d(
     let v_ym2 = y_minus + axis_x * half_size.x + axis_z * half_size.z;
     let v_ym3 = y_minus - axis_x * half_size.x + axis_z * half_size.z;
     add_quad_3d(
-        primitives, camera, rect, v_ym0, v_ym1, v_ym2, v_ym3, -axis_y, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_ym0,
+        v_ym1,
+        v_ym2,
+        v_ym3,
+        -axis_y,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 
     // +Z face
@@ -400,8 +448,20 @@ fn add_box_3d(
     let v_zp2 = z_plus + axis_x * half_size.x + axis_y * half_size.y;
     let v_zp3 = z_plus - axis_x * half_size.x + axis_y * half_size.y;
     add_quad_3d(
-        primitives, camera, rect, v_zp0, v_zp1, v_zp2, v_zp3, axis_z, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_zp0,
+        v_zp1,
+        v_zp2,
+        v_zp3,
+        axis_z,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 
     // -Z face
@@ -411,8 +471,20 @@ fn add_box_3d(
     let v_zm2 = z_minus + axis_x * half_size.x - axis_y * half_size.y;
     let v_zm3 = z_minus - axis_x * half_size.x - axis_y * half_size.y;
     add_quad_3d(
-        primitives, camera, rect, v_zm0, v_zm1, v_zm2, v_zm3, -axis_z, color, stroke, 16.0,
-        is_metallic, light_dir, fill_dir,
+        primitives,
+        camera,
+        rect,
+        v_zm0,
+        v_zm1,
+        v_zm2,
+        v_zm3,
+        -axis_z,
+        color,
+        stroke,
+        16.0,
+        is_metallic,
+        light_dir,
+        fill_dir,
     );
 }
 
@@ -768,21 +840,8 @@ fn render_solid_robot_arm(
             let p_hub_top = p_start + Vector3::new(0.0, 0.0, hub_r * 0.6);
             let p_hub_bot = p_start - Vector3::new(0.0, 0.0, hub_r * 0.6);
             add_cylinder_3d(
-                primitives,
-                camera,
-                rect,
-                p_hub_bot,
-                p_hub_top,
-                hub_r,
-                hub_r,
-                12,
-                dark_hub,
-                true,
-                true,
-                dark_hub,
-                true,
-                light_dir,
-                fill_dir,
+                primitives, camera, rect, p_hub_bot, p_hub_top, hub_r, hub_r, 12, dark_hub, true,
+                true, dark_hub, true, light_dir, fill_dir,
             );
         }
     }
@@ -836,8 +895,7 @@ fn render_solid_robot_arm(
         };
         let u_d = axis_dir.cross(&helper).normalize();
         let w_d = axis_dir.cross(&u_d).normalize();
-        let stroke_subtle =
-            Stroke::new(0.5_f32, Color32::from_rgba_unmultiplied(15, 18, 24, 100));
+        let stroke_subtle = Stroke::new(0.5_f32, Color32::from_rgba_unmultiplied(15, 18, 24, 100));
 
         // +axis end cap details
         add_circle_cap_3d(
@@ -1371,21 +1429,8 @@ fn render_workcell_environment(
             center_f32.z - half.z - leg_h,
         );
         add_cylinder_3d(
-            primitives,
-            camera,
-            rect,
-            p_bot,
-            p_top,
-            leg_r,
-            leg_r,
-            8,
-            leg_color,
-            false,
-            false,
-            leg_color,
-            true,
-            light_dir,
-            fill_dir,
+            primitives, camera, rect, p_bot, p_top, leg_r, leg_r, 8, leg_color, false, false,
+            leg_color, true, light_dir, fill_dir,
         );
     }
 }
@@ -1400,7 +1445,11 @@ fn render_workpieces(
     fill_dir: Vector3<f32>,
 ) {
     for wp in &mgr.workpieces {
-        let p_f32 = Point3::new(wp.position.x as f32, wp.position.y as f32, wp.position.z as f32);
+        let p_f32 = Point3::new(
+            wp.position.x as f32,
+            wp.position.y as f32,
+            wp.position.z as f32,
+        );
         let stroke_wp = if wp.is_grasped {
             Stroke::new(1.8_f32, Color32::from_rgb(0, 240, 220)) // Glowing cyan grasp outline
         } else {
@@ -1414,19 +1463,8 @@ fn render_workpieces(
                 let ay = rot_f32 * Vector3::y();
                 let az = rot_f32 * Vector3::z();
                 add_box_3d(
-                    primitives,
-                    camera,
-                    rect,
-                    p_f32,
-                    half_size,
-                    ax,
-                    ay,
-                    az,
-                    wp.color,
-                    stroke_wp,
-                    false,
-                    light_dir,
-                    fill_dir,
+                    primitives, camera, rect, p_f32, half_size, ax, ay, az, wp.color, stroke_wp,
+                    false, light_dir, fill_dir,
                 );
             }
             WorkpieceShape::Cylinder { radius, height } => {
@@ -1436,21 +1474,8 @@ fn render_workpieces(
                 let p_bot = p_f32 - ax_z * half_h;
                 let p_top = p_f32 + ax_z * half_h;
                 add_cylinder_3d(
-                    primitives,
-                    camera,
-                    rect,
-                    p_bot,
-                    p_top,
-                    radius,
-                    radius,
-                    14,
-                    wp.color,
-                    true,
-                    true,
-                    wp.color,
-                    true,
-                    light_dir,
-                    fill_dir,
+                    primitives, camera, rect, p_bot, p_top, radius, radius, 14, wp.color, true,
+                    true, wp.color, true, light_dir, fill_dir,
                 );
             }
             WorkpieceShape::Sphere { radius } => {
@@ -1593,10 +1618,8 @@ pub fn render_scene_3d(
         let half = size * 0.5;
         let step = size / settings.grid_subdivisions as f32;
 
-        let grid_stroke =
-            Stroke::new(1.0_f32, Color32::from_rgba_unmultiplied(100, 110, 130, 45));
-        let axis_stroke =
-            Stroke::new(1.5_f32, Color32::from_rgba_unmultiplied(120, 135, 160, 90));
+        let grid_stroke = Stroke::new(1.0_f32, Color32::from_rgba_unmultiplied(100, 110, 130, 45));
+        let axis_stroke = Stroke::new(1.5_f32, Color32::from_rgba_unmultiplied(120, 135, 160, 90));
 
         let mut i = -half;
         while i <= half + 1e-4 {
@@ -1763,11 +1786,25 @@ pub fn render_scene_3d(
     }
 
     if settings.show_obstacles {
-        render_obstacles(&mut primitives, camera, rect, environment, light_dir, fill_dir);
+        render_obstacles(
+            &mut primitives,
+            camera,
+            rect,
+            environment,
+            light_dir,
+            fill_dir,
+        );
     }
 
     if settings.show_workpieces {
-        render_workpieces(&mut primitives, camera, rect, workpieces, light_dir, fill_dir);
+        render_workpieces(
+            &mut primitives,
+            camera,
+            rect,
+            workpieces,
+            light_dir,
+            fill_dir,
+        );
     }
 
     if settings.show_solid_mesh {
@@ -1924,9 +1961,10 @@ pub fn render_scene_3d(
             let p_tcp = p_ee + u_z * 0.098;
             let dist = (target_pos - p_tcp.cast::<f64>()).norm();
             if dist < 0.8 {
-                if let (Some((s_tcp, _)), Some((s_t, _))) =
-                    (camera.project(p_tcp, rect), camera.project(target_f32, rect))
-                {
+                if let (Some((s_tcp, _)), Some((s_t, _))) = (
+                    camera.project(p_tcp, rect),
+                    camera.project(target_f32, rect),
+                ) {
                     painter.line_segment(
                         [s_tcp, s_t],
                         Stroke::new(1.2_f32, Color32::from_rgba_unmultiplied(0, 235, 215, 120)),
@@ -1936,16 +1974,20 @@ pub fn render_scene_3d(
         }
     }
 
-    let mouse_pos = ui.input(|i| {
-        i.pointer.interact_pos()
-            .or_else(|| i.pointer.latest_pos())
-            .or_else(|| i.pointer.hover_pos())
-    }).unwrap_or(Pos2::new(-9999.0, -9999.0));
+    let mouse_pos = ui
+        .input(|i| {
+            i.pointer
+                .interact_pos()
+                .or_else(|| i.pointer.latest_pos())
+                .or_else(|| i.pointer.hover_pos())
+        })
+        .unwrap_or(Pos2::new(-9999.0, -9999.0));
 
     // Check if user is hovering or clicking directly on the robot's end-effector / gripper
     let p_ee = robot.end_effector_position();
     let p_ee_f32 = Point3::new(p_ee.x as f32, p_ee.y as f32, p_ee.z as f32);
-    let (is_hand_hovered, s_ee_opt) = if let Some((s_ee, ee_depth)) = camera.project(p_ee_f32, rect) {
+    let (is_hand_hovered, s_ee_opt) = if let Some((s_ee, ee_depth)) = camera.project(p_ee_f32, rect)
+    {
         let r_hand = (48.0 / ee_depth).clamp(28.0, 65.0);
         let hovered = (mouse_pos - s_ee).length() <= r_hand;
         (hovered, Some((s_ee, ee_depth)))
@@ -1990,7 +2032,10 @@ pub fn render_scene_3d(
             Color32::from_rgba_unmultiplied(255, 170, 0, 45),
         );
         // Center sphere
-        let center_color = if active_drag_axis == GizmoDragAxis::TargetCenter || is_center_hovered || is_hand_hovered {
+        let center_color = if active_drag_axis == GizmoDragAxis::TargetCenter
+            || is_center_hovered
+            || is_hand_hovered
+        {
             Color32::from_rgb(255, 230, 80)
         } else {
             Color32::from_rgb(255, 160, 20)

@@ -1,4 +1,3 @@
-use kine_rs::kinematics::IKSolverType;
 use kine_rs::ui::app::{RoboSimApp, SmoothMotionTarget};
 use kine_rs::ui::chat_command::{execute_chat_command, ChatCommandConsole, ChatSender};
 use nalgebra::Point3;
@@ -72,7 +71,6 @@ fn test_chat_command_direct_joint_moves() {
 #[test]
 fn test_chat_command_cartesian_and_jogs() {
     let mut app = RoboSimApp::default();
-    app.solver_type = IKSolverType::JacobianDLS;
 
     // 1. Move to Cartesian coordinates
     let (reply, is_err) = execute_chat_command("move x 0.40 y 0.15 z 0.35", &mut app);

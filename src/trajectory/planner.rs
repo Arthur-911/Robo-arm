@@ -62,7 +62,9 @@ impl Segment3D {
 
     pub fn evaluate_velocity(&self, t: f64) -> Vector3<f64> {
         match self {
-            Self::Cubic { x, y, z, .. } => Vector3::new(x.velocity(t), y.velocity(t), z.velocity(t)),
+            Self::Cubic { x, y, z, .. } => {
+                Vector3::new(x.velocity(t), y.velocity(t), z.velocity(t))
+            }
             Self::Quintic { x, y, z, .. } => {
                 Vector3::new(x.velocity(t), y.velocity(t), z.velocity(t))
             }
@@ -153,6 +155,7 @@ impl TrajectoryPlanner {
     }
 
     /// Reconstructs the piecewise polynomial segments connecting waypoints with continuous C1/C2 derivatives.
+    #[allow(clippy::needless_range_loop)]
     pub fn rebuild_trajectory(&mut self) {
         self.segments.clear();
         self.cumulative_times.clear();

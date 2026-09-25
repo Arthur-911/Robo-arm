@@ -128,7 +128,7 @@ pub fn solve_jacobian_ik(
                     // Singularity-Robust (SR) Adaptive Damping:
                     let lambda = if params.adaptive_damping {
                         let j_pos = j.rows(0, 3);
-                        let a = &j_pos * j_pos.transpose();
+                        let a = j_pos * j_pos.transpose();
                         let det_pos = a[(0, 0)] * (a[(1, 1)] * a[(2, 2)] - a[(1, 2)] * a[(2, 1)])
                             - a[(0, 1)] * (a[(1, 0)] * a[(2, 2)] - a[(1, 2)] * a[(2, 0)])
                             + a[(0, 2)] * (a[(1, 0)] * a[(2, 1)] - a[(1, 1)] * a[(2, 0)]);
@@ -136,8 +136,7 @@ pub fn solve_jacobian_ik(
                         let w = det_pos.max(0.0).sqrt();
                         if w < params.singularity_threshold {
                             let ratio = (1.0 - w / params.singularity_threshold).max(0.0);
-                            current_damping
-                                + (params.max_damping - current_damping) * ratio * ratio
+                            current_damping + (params.max_damping - current_damping) * ratio * ratio
                         } else {
                             current_damping
                         }
@@ -169,7 +168,9 @@ pub fn solve_jacobian_ik(
                             let solved_j = chol.solve(&j);
                             &jt * solved_j
                         } else {
-                            let inv = a_mat.try_inverse().unwrap_or_else(|| DMatrix::identity(task_dim, task_dim));
+                            let inv = a_mat
+                                .try_inverse()
+                                .unwrap_or_else(|| DMatrix::identity(task_dim, task_dim));
                             &jt * (&inv * &j)
                         };
 
@@ -183,7 +184,8 @@ pub fn solve_jacobian_ik(
                                 if let Some((min, max)) = joint.limits {
                                     let center = (min + max) * 0.5;
                                     let half_range = ((max - min) * 0.5).max(1e-3);
-                                    let u = ((q[actuated_i] - center) / half_range).clamp(-0.95, 0.95);
+                                    let u =
+                                        ((q[actuated_i] - center) / half_range).clamp(-0.95, 0.95);
                                     let barrier = 1.0 + (u * u) / (1.0 - u * u);
                                     grad[actuated_i] = -barrier * (u / half_range);
                                 }
@@ -227,7 +229,8 @@ pub fn solve_jacobian_ik(
 
         // 4. Update joint angles with optional Levenberg-Marquardt adaptive step check
         if params.enable_line_search {
-            let current_err_norm = (residual_pos * residual_pos + residual_rot * residual_rot).sqrt();
+            let current_err_norm =
+                (residual_pos * residual_pos + residual_rot * residual_rot).sqrt();
             let mut candidate_q = q.clone();
             for i in 0..dof {
                 candidate_q[i] += delta_q[i] * params.step_size;
@@ -277,7 +280,8 @@ pub fn solve_jacobian_ik(
                 } else {
                     0.0
                 };
-                let half_err_norm = (half_pos_err * half_pos_err + half_rot_err * half_rot_err).sqrt();
+                let half_err_norm =
+                    (half_pos_err * half_pos_err + half_rot_err * half_rot_err).sqrt();
 
                 if half_err_norm < current_err_norm {
                     q = half_q;

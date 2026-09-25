@@ -145,12 +145,15 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
             • weld on / off                : Toggle electric arc welding tool\n\
             • pick <red|blue|gold|1|2|3>   : Auto pick up a workcell workpiece\n\
             • wave / nod / dance / circle  : Run scripted smooth procedural animations\n\
+            • plan to <x> <y> <z>          : RRT collision-free path planner around obstacles\n\
+            • record start / stop / replay : Live motion recording & playback\n\
             • home / reset                 : Reset robot to home configuration\n\
             • zero                         : Set all joint angles to 0°\n\
             • preset <6dof|scara|7dof|2d>  : Switch robot kinematic model\n\
             • play / pause / stop / speed  : Trajectory playback controller\n\
             • status                       : Show current coordinates & joint angles\n\
-            • clear                        : Clear chat message log".to_string(),
+            • clear                        : Clear chat message log"
+                .to_string(),
             false,
         );
     }
@@ -176,12 +179,24 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
                 🖐️ Tool State   : Gripper={:.0}%, Vacuum={}, Weld={}",
                 app.robot.name,
                 app.robot.dof(),
-                ee.x, ee.y, ee.z,
-                r.to_degrees(), p.to_degrees(), y.to_degrees(),
+                ee.x,
+                ee.y,
+                ee.z,
+                r.to_degrees(),
+                p.to_degrees(),
+                y.to_degrees(),
                 joint_str,
                 (1.0 - app.tool_state.gripper_opening) * 100.0,
-                if app.tool_state.is_vacuum_active { "ON" } else { "OFF" },
-                if app.tool_state.is_welding_active { "ON" } else { "OFF" }
+                if app.tool_state.is_vacuum_active {
+                    "ON"
+                } else {
+                    "OFF"
+                },
+                if app.tool_state.is_welding_active {
+                    "ON"
+                } else {
+                    "OFF"
+                }
             ),
             false,
         );
@@ -198,14 +213,20 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
             .collect();
         app.start_smooth_joint_move(home_q, 1.2);
         app.controller.clear_trail();
-        return ("🏠 Smoothly gliding robot to home configuration...".to_string(), false);
+        return (
+            "🏠 Smoothly gliding robot to home configuration...".to_string(),
+            false,
+        );
     }
 
     if lower == "zero" || lower == "zero joints" {
         let zero_q = vec![0.0; app.robot.dof()];
         app.start_smooth_joint_move(zero_q, 1.2);
         app.controller.clear_trail();
-        return ("🔄 Smoothly driving all joints to 0.0°...".to_string(), false);
+        return (
+            "🔄 Smoothly driving all joints to 0.0°...".to_string(),
+            false,
+        );
     }
 
     if lower == "sync" || lower == "sync target" {
@@ -221,7 +242,12 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
     }
 
     // 4. TOOL & GRIPPER CONTROLS
-    if lower == "grip" || lower == "grab" || lower == "close" || lower == "close gripper" || lower == "clamp" {
+    if lower == "grip"
+        || lower == "grab"
+        || lower == "close"
+        || lower == "close gripper"
+        || lower == "clamp"
+    {
         app.start_smooth_gripper_move(0.05, 0.35);
         return ("🖐️ Gripper jaws closing smoothly...".to_string(), false);
     }
@@ -235,10 +261,20 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
         if let Some(val_str) = lower_tokens.get(1) {
             let clean = val_str.trim_end_matches('%');
             if let Ok(v) = clean.parse::<f64>() {
-                let ratio = if v > 1.0 { (v / 100.0).clamp(0.0, 1.0) } else { v.clamp(0.0, 1.0) };
+                let ratio = if v > 1.0 {
+                    (v / 100.0).clamp(0.0, 1.0)
+                } else {
+                    v.clamp(0.0, 1.0)
+                };
                 let target_opening = (1.0 - ratio) as f32;
                 app.start_smooth_gripper_move(target_opening, 0.35);
-                return (format!("🖐️ Gripper opening smoothly transitioning to {:.0}%.", ratio * 100.0), false);
+                return (
+                    format!(
+                        "🖐️ Gripper opening smoothly transitioning to {:.0}%.",
+                        ratio * 100.0
+                    ),
+                    false,
+                );
             }
         }
     }
@@ -264,17 +300,18 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
     // 5. PRESETS
     if lower.starts_with("preset") {
         let name = lower_tokens.get(1).map(|s| s.as_str()).unwrap_or("");
-        let new_robot = if name.contains("6dof") || name.contains("industrial") || name.contains("ur5") {
-            Some(presets::industrial_6dof())
-        } else if name.contains("scara") || name.contains("4dof") {
-            Some(presets::scara_4dof())
-        } else if name.contains("7dof") || name.contains("redundant") || name.contains("iiwa") {
-            Some(presets::redundant_7dof())
-        } else if name.contains("planar") || name.contains("2d") || name.contains("3dof") {
-            Some(presets::planar_3dof())
-        } else {
-            None
-        };
+        let new_robot =
+            if name.contains("6dof") || name.contains("industrial") || name.contains("ur5") {
+                Some(presets::industrial_6dof())
+            } else if name.contains("scara") || name.contains("4dof") {
+                Some(presets::scara_4dof())
+            } else if name.contains("7dof") || name.contains("redundant") || name.contains("iiwa") {
+                Some(presets::redundant_7dof())
+            } else if name.contains("planar") || name.contains("2d") || name.contains("3dof") {
+                Some(presets::planar_3dof())
+            } else {
+                None
+            };
 
         if let Some(bot) = new_robot {
             let bot_name = bot.name.clone();
@@ -283,37 +320,71 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
             let (r, p, y) = app.robot.end_effector_pose().rotation.euler_angles();
             app.target_rpy_deg = [r.to_degrees(), p.to_degrees(), y.to_degrees()];
             app.controller.clear_trail();
-            app.controller.smoother.reset(&app.robot.get_actuated_joint_positions());
+            app.controller
+                .smoother
+                .reset(&app.robot.get_actuated_joint_positions());
             return (format!("🤖 Loaded robot preset: '{}'.", bot_name), false);
         } else {
-            return ("Usage: preset <industrial|scara|7dof|planar>".to_string(), true);
+            return (
+                "Usage: preset <industrial|scara|7dof|planar>".to_string(),
+                true,
+            );
         }
     }
 
     // 6. PROCEDURAL DEMO ANIMATIONS (WAVE, NOD, DANCE, CIRCLE)
     if lower == "wave" {
         app.controller.planner.clear_waypoints();
-        app.controller.planner.set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
+        app.controller
+            .planner
+            .set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
         let center = app.robot.end_effector_position();
         app.controller.planner.add_waypoint("Center", center, 1.0);
-        app.controller.planner.add_waypoint("Wave Left", center + Vector3::new(0.0, 0.12, 0.05), 0.7);
-        app.controller.planner.add_waypoint("Wave Right", center + Vector3::new(0.0, -0.12, 0.05), 0.7);
-        app.controller.planner.add_waypoint("Wave Left 2", center + Vector3::new(0.0, 0.12, 0.05), 0.7);
+        app.controller.planner.add_waypoint(
+            "Wave Left",
+            center + Vector3::new(0.0, 0.12, 0.05),
+            0.7,
+        );
+        app.controller.planner.add_waypoint(
+            "Wave Right",
+            center + Vector3::new(0.0, -0.12, 0.05),
+            0.7,
+        );
+        app.controller.planner.add_waypoint(
+            "Wave Left 2",
+            center + Vector3::new(0.0, 0.12, 0.05),
+            0.7,
+        );
         app.controller.planner.add_waypoint("Return", center, 0.8);
         app.controller.is_looping = false;
         app.controller.reset();
         app.controller.play();
-        return ("👋 Executing smooth robotic wave greeting!".to_string(), false);
+        return (
+            "👋 Executing smooth robotic wave greeting!".to_string(),
+            false,
+        );
     }
 
     if lower == "nod" {
         app.controller.planner.clear_waypoints();
-        app.controller.planner.set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
+        app.controller
+            .planner
+            .set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
         let center = app.robot.end_effector_position();
         app.controller.planner.add_waypoint("Start", center, 0.8);
-        app.controller.planner.add_waypoint("Nod Down 1", center + Vector3::new(0.0, 0.0, -0.08), 0.6);
-        app.controller.planner.add_waypoint("Nod Up 1", center + Vector3::new(0.0, 0.0, 0.04), 0.6);
-        app.controller.planner.add_waypoint("Nod Down 2", center + Vector3::new(0.0, 0.0, -0.08), 0.6);
+        app.controller.planner.add_waypoint(
+            "Nod Down 1",
+            center + Vector3::new(0.0, 0.0, -0.08),
+            0.6,
+        );
+        app.controller
+            .planner
+            .add_waypoint("Nod Up 1", center + Vector3::new(0.0, 0.0, 0.04), 0.6);
+        app.controller.planner.add_waypoint(
+            "Nod Down 2",
+            center + Vector3::new(0.0, 0.0, -0.08),
+            0.6,
+        );
         app.controller.planner.add_waypoint("Center", center, 0.7);
         app.controller.is_looping = false;
         app.controller.reset();
@@ -323,20 +394,35 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
 
     if lower == "dance" {
         app.controller.planner.clear_waypoints();
-        app.controller.planner.set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
+        app.controller
+            .planner
+            .set_continuity_mode(TrajectoryContinuityMode::SmoothContinuous);
         let c = app.robot.end_effector_position();
         let r = 0.10;
         app.controller.planner.add_waypoint("P0", c, 1.0);
-        app.controller.planner.add_waypoint("P1", c + Vector3::new(r, r, 0.05), 0.8);
-        app.controller.planner.add_waypoint("P2", c + Vector3::new(0.0, 0.0, -0.05), 0.8);
-        app.controller.planner.add_waypoint("P3", c + Vector3::new(-r, -r, 0.05), 0.8);
-        app.controller.planner.add_waypoint("P4", c + Vector3::new(0.0, 0.0, -0.05), 0.8);
-        app.controller.planner.add_waypoint("P5", c + Vector3::new(r, -r, 0.05), 0.8);
+        app.controller
+            .planner
+            .add_waypoint("P1", c + Vector3::new(r, r, 0.05), 0.8);
+        app.controller
+            .planner
+            .add_waypoint("P2", c + Vector3::new(0.0, 0.0, -0.05), 0.8);
+        app.controller
+            .planner
+            .add_waypoint("P3", c + Vector3::new(-r, -r, 0.05), 0.8);
+        app.controller
+            .planner
+            .add_waypoint("P4", c + Vector3::new(0.0, 0.0, -0.05), 0.8);
+        app.controller
+            .planner
+            .add_waypoint("P5", c + Vector3::new(r, -r, 0.05), 0.8);
         app.controller.planner.add_waypoint("P6", c, 0.9);
         app.controller.is_looping = true;
         app.controller.reset();
         app.controller.play();
-        return ("✨ Playing multi-axis smooth figure-8 dance routine!".to_string(), false);
+        return (
+            "✨ Playing multi-axis smooth figure-8 dance routine!".to_string(),
+            false,
+        );
     }
 
     // 7. TRAJECTORY PLAYBACK
@@ -365,13 +451,26 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
             let clean = val_str.trim_end_matches('x');
             if let Ok(s) = clean.parse::<f64>() {
                 app.controller.speed_multiplier = s.clamp(0.1, 10.0);
-                return (format!("⚡ Trajectory speed multiplier set to {:.2}x.", app.controller.speed_multiplier), false);
+                return (
+                    format!(
+                        "⚡ Trajectory speed multiplier set to {:.2}x.",
+                        app.controller.speed_multiplier
+                    ),
+                    false,
+                );
             }
         }
     }
 
     // 8. DIRECT JOINT COMMANDS: "joint 1 45", "j2 -30", "joints 0, 45, -90"
-    if lower.starts_with("joint ") || lower.starts_with("j") && lower.chars().nth(1).map(|c| c.is_ascii_digit()).unwrap_or(false) {
+    if lower.starts_with("joint ")
+        || lower.starts_with("j")
+            && lower
+                .chars()
+                .nth(1)
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+    {
         // e.g. "joint 1 45" or "j1 45"
         let (joint_num, val_str): (Option<&str>, Option<&str>) = if lower.starts_with("joint ") {
             (
@@ -392,14 +491,20 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
                     .trim_end_matches('°')
                     .parse::<f64>(),
             ) {
-                let actuated_joints: Vec<usize> = app.robot.joints.iter().enumerate().filter(|(_, j)| j.is_actuated()).map(|(i, _)| i).collect();
+                let actuated_joints: Vec<usize> = app
+                    .robot
+                    .joints
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, j)| j.is_actuated())
+                    .map(|(i, _)| i)
+                    .collect();
                 if j_idx >= 1 && j_idx <= actuated_joints.len() {
                     let actual_idx = actuated_joints[j_idx - 1];
-                    let is_prismatic = app.robot.joints[actual_idx].joint_type == crate::kinematics::JointType::Prismatic;
-                    
-                    let target_rad_or_m = if is_prismatic {
-                        angle_val
-                    } else if val_s.ends_with("rad") {
+                    let is_prismatic = app.robot.joints[actual_idx].joint_type
+                        == crate::kinematics::JointType::Prismatic;
+
+                    let target_rad_or_m = if is_prismatic || val_s.ends_with("rad") {
                         angle_val
                     } else {
                         angle_val.to_radians()
@@ -433,7 +538,14 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
                         false,
                     );
                 } else {
-                    return (format!("Joint index {} out of range (1..={}).", j_idx, actuated_joints.len()), true);
+                    return (
+                        format!(
+                            "Joint index {} out of range (1..={}).",
+                            j_idx,
+                            actuated_joints.len()
+                        ),
+                        true,
+                    );
                 }
             }
         }
@@ -481,9 +593,7 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
                     let actual_idx = actuated_joints[j_idx - 1];
                     let is_prismatic = app.robot.joints[actual_idx].joint_type
                         == crate::kinematics::JointType::Prismatic;
-                    let delta = if is_prismatic {
-                        delta_val
-                    } else if val_s.ends_with("rad") {
+                    let delta = if is_prismatic || val_s.ends_with("rad") {
                         delta_val
                     } else {
                         delta_val.to_radians()
@@ -535,7 +645,10 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
     // "joints 0, 45, -90, 0, 45, 0"
     if lower.starts_with("joints ") {
         let remainder = input["joints ".len()..].trim();
-        let parts: Vec<&str> = remainder.split(|c| c == ',' || c == ' ').filter(|s| !s.is_empty()).collect();
+        let parts: Vec<&str> = remainder
+            .split([',', ' '])
+            .filter(|s| !s.is_empty())
+            .collect();
         let mut actuated = app.robot.get_actuated_joint_positions();
         let mut set_count = 0;
         for (i, p) in parts.iter().enumerate() {
@@ -598,7 +711,7 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
     if lower.starts_with("goto ") {
         let remainder = input["goto ".len()..].trim();
         let parts: Vec<&str> = remainder
-            .split(|c| c == ',' || c == ' ')
+            .split([',', ' '])
             .filter(|s| !s.is_empty())
             .collect();
         if parts.len() >= 3 {
@@ -610,10 +723,7 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
                 let goal = Point3::new(x, y, z);
                 app.start_smooth_cartesian_move(goal, None, 1.0);
                 return (
-                    format!(
-                        "📍 Smoothly gliding to ({:.3}, {:.3}, {:.3})...",
-                        x, y, z
-                    ),
+                    format!("📍 Smoothly gliding to ({:.3}, {:.3}, {:.3})...", x, y, z),
                     false,
                 );
             }
@@ -708,25 +818,45 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
             }
         }
     }
-    if lower.starts_with("rpy ") {
-        if lower_tokens.len() >= 4 {
-            if let (Ok(r), Ok(p), Ok(y)) = (lower_tokens[1].parse::<f64>(), lower_tokens[2].parse::<f64>(), lower_tokens[3].parse::<f64>()) {
-                app.target_rpy_deg = [r, p, y];
-                app.solver_mode = IKSolverMode::FullPose;
-                app.execute_solve();
-                return (format!("🔄 Set Orientation to Roll={:.1}°, Pitch={:.1}°, Yaw={:.1}°.", r, p, y), false);
-            }
+    if lower.starts_with("rpy ") && lower_tokens.len() >= 4 {
+        if let (Ok(r), Ok(p), Ok(y)) = (
+            lower_tokens[1].parse::<f64>(),
+            lower_tokens[2].parse::<f64>(),
+            lower_tokens[3].parse::<f64>(),
+        ) {
+            app.target_rpy_deg = [r, p, y];
+            app.solver_mode = IKSolverMode::FullPose;
+            app.execute_solve();
+            return (
+                format!(
+                    "🔄 Set Orientation to Roll={:.1}°, Pitch={:.1}°, Yaw={:.1}°.",
+                    r, p, y
+                ),
+                false,
+            );
         }
     }
 
     // 12. PICK AND PLACE WORKPIECES
     if lower.starts_with("pick") {
         let target_item = lower_tokens.get(1).map(|s| s.as_str()).unwrap_or("");
-        let wp_idx = if target_item.contains("red") || target_item.contains("box") || target_item.contains("cube") || target_item == "1" {
+        let wp_idx = if target_item.contains("red")
+            || target_item.contains("box")
+            || target_item.contains("cube")
+            || target_item == "1"
+        {
             Some(0)
-        } else if target_item.contains("blue") || target_item.contains("cylinder") || target_item.contains("billet") || target_item == "2" {
+        } else if target_item.contains("blue")
+            || target_item.contains("cylinder")
+            || target_item.contains("billet")
+            || target_item == "2"
+        {
             Some(1)
-        } else if target_item.contains("gold") || target_item.contains("sphere") || target_item.contains("brass") || target_item == "3" {
+        } else if target_item.contains("gold")
+            || target_item.contains("sphere")
+            || target_item.contains("brass")
+            || target_item == "3"
+        {
             Some(2)
         } else {
             Some(0) // Default to first workpiece
@@ -751,25 +881,35 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
 
     if lower == "reset workpieces" || lower == "reset demo" {
         app.workpieces.reset_demo_workpieces();
-        return ("📦 Reset demo workpieces to initial tabletop locations.".to_string(), false);
+        return (
+            "📦 Reset demo workpieces to initial tabletop locations.".to_string(),
+            false,
+        );
     }
 
     // 13. CAMERA COMMANDS
     if lower == "focus" || lower == "focus tcp" {
         let ee = app.robot.end_effector_position();
-        app.camera.focus_on(Point3::new(ee.x as f32, ee.y as f32, ee.z as f32));
+        app.camera
+            .focus_on(Point3::new(ee.x as f32, ee.y as f32, ee.z as f32));
         return ("📷 Camera focused on Tool Center Point.".to_string(), false);
     }
 
     if lower == "reset camera" || lower == "camera home" {
         app.camera.reset();
-        return ("📷 Camera view reset to home orientation.".to_string(), false);
+        return (
+            "📷 Camera view reset to home orientation.".to_string(),
+            false,
+        );
     }
 
     // 14. SOLVER MODE
     if lower == "solver dls" {
         app.solver_type = IKSolverType::JacobianDLS;
-        return ("⚡ IK Solver switched to Jacobian Damped Least Squares (DLS).".to_string(), false);
+        return (
+            "⚡ IK Solver switched to Jacobian Damped Least Squares (DLS).".to_string(),
+            false,
+        );
     }
     if lower == "solver fabrik" {
         app.solver_type = IKSolverType::FABRIK;
@@ -777,7 +917,114 @@ pub fn execute_chat_command(raw_input: &str, app: &mut RoboSimApp) -> (String, b
     }
     if lower == "solver transpose" {
         app.solver_type = IKSolverType::JacobianTranspose;
-        return ("⚡ IK Solver switched to Jacobian Transpose.".to_string(), false);
+        return (
+            "⚡ IK Solver switched to Jacobian Transpose.".to_string(),
+            false,
+        );
+    }
+
+    // 15. RRT OBSTACLE AVOIDANCE PLANNING COMMANDS
+    if lower.starts_with("plan to ") || lower.starts_with("rrt to ") || lower.starts_with("rrt ") {
+        let remainder = if lower.starts_with("plan to ") {
+            &input["plan to ".len()..]
+        } else if lower.starts_with("rrt to ") {
+            &input["rrt to ".len()..]
+        } else {
+            &input["rrt ".len()..]
+        };
+        let coords: Vec<&str> = remainder.split_whitespace().collect();
+        if coords.len() >= 3 {
+            if let (Ok(x), Ok(y), Ok(z)) = (
+                coords[0].parse::<f64>(),
+                coords[1].parse::<f64>(),
+                coords[2].parse::<f64>(),
+            ) {
+                let goal = Point3::new(x, y, z);
+                let success = app.plan_rrt_to_target(goal);
+                if success {
+                    return (
+                        format!(
+                            "🚀 Planned collision-free path to ({:.2}, {:.2}, {:.2}) avoiding obstacles. Playing trajectory...",
+                            x, y, z
+                        ),
+                        false,
+                    );
+                } else {
+                    let err = app
+                        .last_rrt_result
+                        .as_ref()
+                        .map(|r| r.message.clone())
+                        .unwrap_or_else(|| "Failed to find collision-free path".to_string());
+                    return (format!("❌ RRT planning failed: {}", err), true);
+                }
+            }
+        }
+        return ("Usage: plan to <x> <y> <z> (in meters)".to_string(), true);
+    }
+    if lower == "plan" || lower == "rrt" {
+        let goal = app.target_pos;
+        let success = app.plan_rrt_to_target(goal);
+        if success {
+            return (
+                format!(
+                    "🚀 Planned collision-free path to current target ({:.2}, {:.2}, {:.2}) avoiding obstacles. Playing trajectory...",
+                    goal.x, goal.y, goal.z
+                ),
+                false,
+            );
+        } else {
+            let err = app
+                .last_rrt_result
+                .as_ref()
+                .map(|r| r.message.clone())
+                .unwrap_or_else(|| "Failed to find collision-free path".to_string());
+            return (format!("❌ RRT planning failed: {}", err), true);
+        }
+    }
+
+    // 16. LIVE TRAJECTORY RECORDING COMMANDS
+    if lower == "record" || lower == "record start" || lower == "start record" {
+        if !app.recorder.is_recording {
+            app.recorder
+                .start_recording(Some("Chat Session".to_string()));
+            return ("🔴 Started live trajectory recording...".to_string(), false);
+        } else {
+            return ("⚠️ Already recording.".to_string(), true);
+        }
+    }
+    if lower == "record stop" || lower == "stop record" {
+        if app.recorder.is_recording {
+            app.recorder.stop_recording();
+            let count = app.recorder.recording.frame_count();
+            let dur = app.recorder.recording.total_duration;
+            return (
+                format!(
+                    "⏹ Stopped recording. Captured {} frames ({:.2}s).",
+                    count, dur
+                ),
+                false,
+            );
+        } else {
+            return ("⚠️ Not currently recording.".to_string(), true);
+        }
+    }
+    if lower == "record replay" || lower == "replay record" || lower == "replay" {
+        if !app.recorder.recording.is_empty() {
+            app.recorder.toggle_replay();
+            return (
+                "▶ Toggled replay of recorded trajectory.".to_string(),
+                false,
+            );
+        } else {
+            return (
+                "⚠️ No recorded frames to replay. Type 'record start' first.".to_string(),
+                true,
+            );
+        }
+    }
+    if lower == "record clear" || lower == "clear record" {
+        app.recorder.clear();
+        return ("🗑 Cleared recorded trajectory session.".to_string(), false);
     }
 
     // Unknown command fallback
@@ -903,7 +1150,11 @@ pub fn render_chat_panel(ui: &mut Ui, app: &mut RoboSimApp) {
             send_clicked = true;
         }
 
-        if ui.button("🗑").on_hover_text("Clear message history").clicked() {
+        if ui
+            .button("🗑")
+            .on_hover_text("Clear message history")
+            .clicked()
+        {
             clear_clicked = true;
         }
     });
@@ -965,7 +1216,9 @@ pub fn render_quick_command_hud(ui: &mut Ui, app: &mut RoboSimApp) {
 
                         let input_resp = ui.add(
                             TextEdit::singleline(&mut app.chat.input_text)
-                                .hint_text("e.g. 'move x 0.4 y 0.2', 'joint 1 45', 'wave', 'grip'...")
+                                .hint_text(
+                                    "e.g. 'move x 0.4 y 0.2', 'joint 1 45', 'wave', 'grip'...",
+                                )
                                 .desired_width(260.0),
                         );
 
@@ -1003,11 +1256,19 @@ pub fn render_quick_command_hud(ui: &mut Ui, app: &mut RoboSimApp) {
 
                         ui.separator();
 
-                        if ui.small_button("💬 Tab").on_hover_text("Open full chat tab").clicked() {
+                        if ui
+                            .small_button("💬 Tab")
+                            .on_hover_text("Open full chat tab")
+                            .clicked()
+                        {
                             app.active_tab = crate::ui::app::AppTab::Chat;
                         }
 
-                        if ui.small_button("✕").on_hover_text("Minimize command bar").clicked() {
+                        if ui
+                            .small_button("✕")
+                            .on_hover_text("Minimize command bar")
+                            .clicked()
+                        {
                             app.chat.is_floating_open = false;
                         }
                     });
@@ -1051,4 +1312,3 @@ pub fn render_quick_command_hud(ui: &mut Ui, app: &mut RoboSimApp) {
         }
     }
 }
-

@@ -151,7 +151,12 @@ impl WorkpieceManager {
     }
 
     /// Evaluates grasp interactions and updates positions of held objects.
-    pub fn update(&mut self, tcp_pos: Point3<f64>, tcp_rot: UnitQuaternion<f64>, is_gripping: bool) {
+    pub fn update(
+        &mut self,
+        tcp_pos: Point3<f64>,
+        tcp_rot: UnitQuaternion<f64>,
+        is_gripping: bool,
+    ) {
         if is_gripping {
             if self.currently_held_id.is_none() {
                 // Try grasping closest workpiece within contact threshold

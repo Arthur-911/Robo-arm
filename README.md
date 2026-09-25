@@ -76,6 +76,10 @@ gripper 50%                # Half-opens the gripper jaws
 vacuum on                  # Activates suction cup tool
 weld on                    # Activates electric arc welding torch
 pick red                   # Automatically navigates down, grips red workpiece, and lifts it
+plan to 0.35 0.20 0.40     # RRT collision-free path planner navigating around workcell obstacles
+record start               # Begins capturing live robot motion at 30 FPS
+record stop                # Stops recording and calculates path distance & duration
+record replay              # Replays the captured trajectory session
 wave                       # Plays a friendly robotic wave greeting!
 nod                        # Plays a nodding gesture
 dance                      # Runs a smooth continuous figure-8 trajectory
@@ -132,12 +136,34 @@ Got your own robot arm?
 
 ---
 
-## 📤 Trajectory Exporting
+## 🚀 RRT Collision-Free Path Planning & Obstacle Avoidance
 
-Once you've built waypoints or planned a motion sequence in the **`📈 Traj`** tab, you can export it to production formats:
-- 🐍 **Python**: Clean standalone script using `numpy` and `matplotlib` to plot and simulate the trajectory.
+Robo-Arm incorporates a Configuration-Space (C-space) **Rapidly-exploring Random Tree** motion planning engine:
+- **Bi-directional RRT-Connect**: Simultaneously grows two trees from the current posture and goal pose, connecting in mid-space in milliseconds.
+- **Continuous Edge Collision Checking**: Interpolates joint trajectories and checks robot link capsules against all workcell obstacles (assembly table, safety enclosure, and inspection pillars).
+- **Angle-Space Path Shortcutting**: Post-planning optimizer that removes unnecessary zig-zag motions to generate clean, direct robotic paths.
+- **Seamless Playback**: Converts planned paths into timed, minimum-jerk waypoints with one click or via text command (`plan to <x> <y> <z>`).
+
+---
+
+## ⏺ Live Trajectory Recorder & Motion Capture
+
+Capture real-time robotic manipulation sessions:
+- **High-Frequency Sampling**: Captures 30 FPS timestamped snapshots of end-effector positions, Euler orientations, joint angles, and gripper states.
+- **Interactive Timeline**: Scrub through past movements and loop playback at variable speeds ($0.2\times$ to $3.0\times$).
+- **Keyframe Converter**: Automatically downsamples long recordings into clean waypoint sequences for trajectory execution.
+
+---
+
+## 📤 Production Trajectory Exporting & Importing
+
+Export or reload planned trajectories in production-grade formats:
+- 🐍 **Python**: Standalone simulation script using `numpy` and `matplotlib` to visualize 3D Cartesian paths and waypoint coordinates.
 - 🤖 **ROS 2**: Ready-to-use `control_msgs/action/FollowJointTrajectory` YAML action goal.
-- ⚙️ **CNC G-Code / CSV**: Linear G01/G00 motion instructions and time-series coordinate tables.
+- ⚡ **Arduino / ESP32 C++**: Ready-to-flash C++ sketch with servo pin mappings, degree arrays, and smooth dwell transitions for physical robot arms.
+- 📐 **MATLAB / Simulink**: Standalone `.m` script for 3D trajectory visualization and matrix analysis.
+- ⚙️ **CNC G-Code & CSV**: Linear G01/G00 motion instructions and time-series coordinate tables.
+- 💾 **Full Session JSON**: Complete JSON serialization of waypoints, robot parameters, and recorded sessions with two-way import support.
 
 ---
 
@@ -150,7 +176,7 @@ For those curious about the engineering details:
   - **Jacobian DLS**: Singularity-Robust (SR) Levenberg-Marquardt with adaptive damping based on the Yoshikawa linear manipulability index $\sqrt{\det(J_v J_v^T)}$.
   - **Cholesky Factorization**: Solves $(J J^T + \lambda^2 I) \Delta x = e$ in $O(m^3/3)$ operations rather than costly $O(n^3)$ matrix inversions.
   - **FABRIK**: Geometric heuristic solver with joint angle constraint projection.
-- **Collision Checking**: Real-time analytical cylinder/capsule to obstacle distance checks.
+- **Path Planning (RRT)**: Bi-directional RRT-Connect with deterministic zero-allocation PRNG and analytical capsule-to-box collision validation.
 - **Smoothness Filter**: Real-time Exponential Moving Average (EMA) and joint velocity clamp smoother to prevent jerky motions.
 
 ---
@@ -161,10 +187,14 @@ For those curious about the engineering details:
 Robo-arm/
 ├── src/
 │   ├── kinematics/         # Joint transforms, FK/IK solvers (DLS, FABRIK), collisions, dynamics
-│   ├── trajectory/         # Minimum-jerk quintic/cubic interpolation, smoother, controller
+│   ├── trajectory/         # Minimum-jerk polynomial interpolation, RRT path planner, live recorder, smoother
+│   │   ├── rrt.rs          # Bi-directional RRT-Connect, single-tree RRT, path shortcutting
+│   │   ├── recorder.rs     # Live motion capture engine, frame interpolation, waypoint conversion
+│   │   ├── planner.rs      # Quintic and cubic polynomial spline trajectory generator
+│   │   └── controller.rs   # Playback controller and EMA joint velocity limiter
 │   ├── workcell/           # Tool heads (gripper/vacuum/welder), workpieces, obstacles
 │   ├── urdf/               # Pure-Rust URDF XML parser and exporter
-│   ├── export/             # Code generators for Python, ROS 2, and G-Code
+│   ├── export/             # Code generators for Python, ROS 2, Arduino C++, MATLAB, JSON, and G-Code
 │   ├── presets/            # Built-in models (Industrial 6-DOF, 7-DOF iiwa, SCARA, 2D Planar)
 │   ├── ui/                 # eframe/egui interface, 3D orbit camera, and renderer
 │   │   ├── chat_command.rs # AI Copilot text command engine & chat console
@@ -172,7 +202,7 @@ Robo-arm/
 │   │   └── panels/         # Tab panels (IK, Robot, Trajectory, Workcell, URDF)
 │   ├── lib.rs              # Core library exports
 │   └── main.rs             # Desktop executable entry point
-├── tests/                  # 26 comprehensive integration and unit test suites
+├── tests/                  # 36 comprehensive integration and unit test suites
 ├── Cargo.toml              # Rust crate dependencies and build profiles
 └── README.md               # You are here!
 ```

@@ -76,8 +76,12 @@ pub struct RoboSimApp {
     pub continuous_solve: bool,
     pub last_solution: Option<IKSolution>,
 
-    // Trajectory
+    // Trajectory & Motion Planning
     pub controller: TrajectoryController,
+    pub recorder: crate::trajectory::TrajectoryRecorder,
+    pub rrt_params: crate::trajectory::RrtParams,
+    pub rrt_goal_pos: Point3<f64>,
+    pub last_rrt_result: Option<crate::trajectory::RrtPlanResult>,
 
     // Workcell & Manipulation
     pub tool_state: ToolState,
@@ -132,6 +136,10 @@ impl Default for RoboSimApp {
             continuous_solve: true,
             last_solution: None,
             controller: TrajectoryController::default(),
+            recorder: crate::trajectory::TrajectoryRecorder::default(),
+            rrt_params: crate::trajectory::RrtParams::default(),
+            rrt_goal_pos: target_pos,
+            last_rrt_result: None,
             tool_state: ToolState::default(),
             workpieces: WorkpieceManager::default(),
             environment: WorkcellEnvironment::default(),
@@ -189,6 +197,26 @@ impl RoboSimApp {
         let ee = self.robot.end_effector_position();
         self.controller.add_trail_point(ee);
         self.last_solution = Some(sol);
+    }
+
+    /// Plans a collision-free path to target_pos avoiding all workcell obstacles using RRT.
+    pub fn plan_rrt_to_target(&mut self, target_pos: Point3<f64>) -> bool {
+        let obstacles = self.environment.obstacles.clone();
+        let plan_res = crate::trajectory::plan_cartesian_rrt(
+            &self.robot,
+            target_pos,
+            &obstacles,
+            &self.rrt_params,
+        );
+        let success = plan_res.success;
+        if success {
+            self.controller.planner.waypoints = plan_res.to_waypoints(0.4);
+            self.controller.planner.rebuild_trajectory();
+            self.controller.reset();
+            self.controller.play();
+        }
+        self.last_rrt_result = Some(plan_res);
+        success
     }
 
     /// Starts a smooth minimum-jerk Cartesian movement to goal_pos and optional goal_rpy.
@@ -354,6 +382,30 @@ impl App for RoboSimApp {
             }
         }
 
+        // Handle Live Trajectory Recording
+        if self.recorder.is_recording {
+            let q = self.robot.get_actuated_joint_positions();
+            self.recorder.maybe_record_frame(
+                tcp_pos,
+                self.target_rpy_deg,
+                &q,
+                self.tool_state.gripper_opening,
+            );
+        }
+
+        // Handle Trajectory Recording Replay
+        if self.recorder.is_replaying {
+            ctx.request_repaint();
+            if let Some(frame) = self.recorder.update_replay(dt as f64) {
+                self.robot
+                    .set_actuated_joint_positions(&frame.joint_positions);
+                self.target_pos = frame.ee_position;
+                self.target_rpy_deg = frame.ee_rpy_deg;
+                self.tool_state.gripper_opening = frame.gripper_value;
+                self.controller.add_trail_point(frame.ee_position);
+            }
+        }
+
         // Handle Active Smooth Motion Interpolation (Minimum-Jerk S-Curve)
         if let Some(mut motion) = self.active_smooth_motion.take() {
             ctx.request_repaint(); // 60 FPS continuous update!
@@ -442,8 +494,7 @@ impl App for RoboSimApp {
                             }
                         }
                         2 => {
-                            self.tool_state.gripper_opening =
-                                0.85 + (0.05 - 0.85) * s as f32;
+                            self.tool_state.gripper_opening = 0.85 + (0.05 - 0.85) * s as f32;
                             if u >= 1.0 {
                                 self.tool_state.gripper_opening = 0.05;
                                 *stage = 3;
@@ -557,7 +608,8 @@ impl App for RoboSimApp {
                     }
                     if ui.button("Focus on Tool Center Point (F)").clicked() {
                         let ee = self.robot.end_effector_position();
-                        self.camera.focus_on(Point3::new(ee.x as f32, ee.y as f32, ee.z as f32));
+                        self.camera
+                            .focus_on(Point3::new(ee.x as f32, ee.y as f32, ee.z as f32));
                         ui.close_menu();
                     }
                 });
@@ -713,12 +765,44 @@ impl App for RoboSimApp {
                         }
                         AppTab::Trajectory => {
                             let mut export_req = None;
+                            let mut import_json_req = None;
                             render_trajectory_panel(
                                 ui,
                                 &mut self.controller,
+                                &mut self.recorder,
+                                &self.robot,
+                                &self.environment,
+                                &mut self.rrt_params,
+                                &mut self.rrt_goal_pos,
+                                &mut self.last_rrt_result,
                                 self.target_pos,
                                 &mut export_req,
+                                &mut import_json_req,
                             );
+
+                            if let Some(json_content) = import_json_req {
+                                match crate::export::import_from_json(&json_content) {
+                                    Ok((wps, rec)) => {
+                                        if !wps.is_empty() {
+                                            self.controller.planner.waypoints = wps;
+                                            self.controller.planner.rebuild_trajectory();
+                                        }
+                                        if let Some(r) = rec {
+                                            self.recorder.recording = r;
+                                        }
+                                        self.chat.add_robot_reply(
+                                            "Trajectory JSON imported successfully!",
+                                        );
+                                    }
+                                    Err(e) => {
+                                        self.chat.add_system_error(&format!(
+                                            "Trajectory import failed: {}",
+                                            e
+                                        ));
+                                    }
+                                }
+                            }
+
                             if let Some(fmt) = export_req {
                                 match fmt {
                                     "python" => {
@@ -727,7 +811,8 @@ impl App for RoboSimApp {
                                             &self.controller.planner,
                                         );
                                         self.export_modal = Some((
-                                            "Python Trajectory Script (NumPy / Matplotlib)".to_string(),
+                                            "Python Trajectory Script (NumPy / Matplotlib)"
+                                                .to_string(),
                                             code,
                                         ));
                                     }
@@ -748,6 +833,48 @@ impl App for RoboSimApp {
                                         );
                                         self.export_modal = Some((
                                             "CNC G-Code & CSV Time-Series Output".to_string(),
+                                            code,
+                                        ));
+                                    }
+                                    "json" => {
+                                        let code = crate::export::export_to_json(
+                                            &self.robot,
+                                            &self.controller.planner,
+                                            Some(&self.recorder.recording),
+                                        );
+                                        self.export_modal = Some((
+                                            "Trajectory Session JSON Backup".to_string(),
+                                            code,
+                                        ));
+                                    }
+                                    "arduino" => {
+                                        let code = crate::export::export_to_arduino_cpp(
+                                            &self.robot,
+                                            &self.controller.planner,
+                                            Some(&self.recorder.recording),
+                                        );
+                                        self.export_modal = Some((
+                                            "Arduino / ESP32 C++ Motion Controller".to_string(),
+                                            code,
+                                        ));
+                                    }
+                                    "matlab" => {
+                                        let code = crate::export::export_to_matlab(
+                                            &self.robot,
+                                            &self.controller.planner,
+                                            Some(&self.recorder.recording),
+                                        );
+                                        self.export_modal = Some((
+                                            "MATLAB Trajectory Simulation & Plotting".to_string(),
+                                            code,
+                                        ));
+                                    }
+                                    "csv_recorded" => {
+                                        let code = crate::export::export_recorded_to_csv(
+                                            &self.recorder.recording,
+                                        );
+                                        self.export_modal = Some((
+                                            "Recorded Motion CSV Time-Series".to_string(),
                                             code,
                                         ));
                                     }
@@ -870,11 +997,12 @@ impl App for RoboSimApp {
                         self.drag_start_target.y as f32,
                         self.drag_start_target.z as f32,
                     );
-                    let depth = if let Some((_, d)) = self.camera.project(origin_f32, available_rect) {
-                        d.max(0.1)
-                    } else {
-                        self.camera.distance
-                    };
+                    let depth =
+                        if let Some((_, d)) = self.camera.project(origin_f32, available_rect) {
+                            d.max(0.1)
+                        } else {
+                            self.camera.distance
+                        };
 
                     match self.active_drag_axis {
                         GizmoDragAxis::AxisX => {
@@ -912,7 +1040,11 @@ impl App for RoboSimApp {
                         }
                         GizmoDragAxis::TargetCenter => {
                             // Direct View-Plane dragging: hand tracks cursor in 3D 1:1!
-                            let world_disp = self.camera.screen_delta_to_world(delta_screen, depth, available_rect);
+                            let world_disp = self.camera.screen_delta_to_world(
+                                delta_screen,
+                                depth,
+                                available_rect,
+                            );
                             let mut new_pos = self.drag_start_target;
                             new_pos.x += world_disp.x as f64;
                             new_pos.y += world_disp.y as f64;

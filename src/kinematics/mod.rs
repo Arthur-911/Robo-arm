@@ -10,7 +10,10 @@ pub mod manipulability;
 pub mod robot;
 pub mod solver;
 
-pub use collision::{check_collisions, CollisionReport, LinkCapsule, ObstacleBox};
+pub use collision::{
+    check_collisions, check_collisions_for_q, get_robot_link_capsules_from_poses,
+    is_configuration_valid, CollisionReport, LinkCapsule, ObstacleBox,
+};
 pub use dynamics::{compute_gravity_torques, JointDynamicsReport};
 pub use ik_fabrik::solve_fabrik_ik;
 pub use ik_jacobian::solve_jacobian_ik;

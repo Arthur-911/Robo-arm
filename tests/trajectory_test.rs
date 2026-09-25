@@ -90,9 +90,8 @@ fn test_joint_trajectory_smoother() {
     let next_q = smoother.filter(&target, 0.02);
 
     // Max delta allowed per step = 2.0 * 0.02 = 0.04 rad
-    for i in 0..3 {
-        assert!(next_q[i] > 0.0);
-        assert!(next_q[i] <= 0.04 + 1e-6, "Should clamp step to max velocity");
+    for &val in next_q.iter().take(3) {
+        assert!(val > 0.0);
+        assert!(val <= 0.04 + 1e-6, "Should clamp step to max velocity");
     }
 }
-

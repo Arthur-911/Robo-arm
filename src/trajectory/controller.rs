@@ -47,8 +47,8 @@ impl JointTrajectorySmoother {
         let dt_clamped = dt.clamp(1e-4, 0.1);
         let max_delta = self.max_joint_velocity * dt_clamped;
 
-        for i in 0..target_q.len() {
-            let diff = target_q[i] - self.smoothed_q[i];
+        for (i, &tq) in target_q.iter().enumerate() {
+            let diff = tq - self.smoothed_q[i];
             let filtered_step = diff * self.smoothing_alpha;
             let clamped_step = filtered_step.clamp(-max_delta, max_delta);
             self.smoothed_q[i] += clamped_step;

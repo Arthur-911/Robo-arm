@@ -1,9 +1,10 @@
 use crate::kinematics::RobotArm;
 use crate::presets;
-use egui::{Color32, CollapsingHeader, DragValue, Grid, Slider, Ui};
+use egui::{CollapsingHeader, Color32, DragValue, Grid, Slider, Ui};
 use nalgebra::Point3;
 
 /// Renders the Robot Configuration, Manual Joint Inspector, and Motor Dynamics Load panel.
+#[allow(clippy::too_many_arguments)]
 pub fn render_robot_panel(
     ui: &mut Ui,
     robot: &mut RobotArm,
@@ -61,20 +62,20 @@ pub fn render_robot_panel(
             let mut angles = vec![0.0; dof];
             if dof >= 6 {
                 angles[0] = 0.0;
-                angles[1] = 0.5236; // 30 deg
-                angles[2] = -1.0472; // -60 deg
+                angles[1] = 30.0_f64.to_radians();
+                angles[2] = -60.0_f64.to_radians();
                 angles[3] = 0.0;
-                angles[4] = 0.5236; // 30 deg
+                angles[4] = 30.0_f64.to_radians();
                 angles[5] = 0.0;
             } else if dof == 4 {
-                angles[0] = 0.5236;
-                angles[1] = -0.5236;
+                angles[0] = 30.0_f64.to_radians();
+                angles[1] = -30.0_f64.to_radians();
                 angles[2] = 0.1;
                 angles[3] = 0.0;
             } else if dof == 3 {
-                angles[0] = 0.5236;
-                angles[1] = -0.7854;
-                angles[2] = 0.2618;
+                angles[0] = 30.0_f64.to_radians();
+                angles[1] = -45.0_f64.to_radians();
+                angles[2] = 15.0_f64.to_radians();
             }
             robot.set_actuated_joint_positions(&angles);
             joint_moved = true;
@@ -96,8 +97,7 @@ pub fn render_robot_panel(
                 let (min, max) = joint
                     .limits
                     .unwrap_or((-std::f64::consts::PI, std::f64::consts::PI));
-                let is_prismatic =
-                    joint.joint_type == crate::kinematics::JointType::Prismatic;
+                let is_prismatic = joint.joint_type == crate::kinematics::JointType::Prismatic;
 
                 egui::Frame::none()
                     .fill(Color32::from_rgb(26, 28, 34))

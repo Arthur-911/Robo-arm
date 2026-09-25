@@ -94,7 +94,12 @@ impl OrbitCamera {
     }
 
     /// Converts a 2D screen delta (pixels) into a 3D world displacement in the view plane at given depth.
-    pub fn screen_delta_to_world(&self, delta_screen: Vec2, depth: f32, rect: Rect) -> Vector3<f32> {
+    pub fn screen_delta_to_world(
+        &self,
+        delta_screen: Vec2,
+        depth: f32,
+        rect: Rect,
+    ) -> Vector3<f32> {
         let (right, up) = self.view_plane_axes();
         let focal = 1.0 / (self.fov_y * 0.5).tan();
         let k = (focal * rect.height() * 0.5).max(1.0);
@@ -104,9 +109,18 @@ impl OrbitCamera {
     }
 
     /// Projects screen drag delta onto a 3D world axis handle.
-    pub fn project_axis_delta(&self, origin: Point3<f32>, axis: Vector3<f32>, delta_screen: Vec2, rect: Rect) -> f32 {
+    pub fn project_axis_delta(
+        &self,
+        origin: Point3<f32>,
+        axis: Vector3<f32>,
+        delta_screen: Vec2,
+        rect: Rect,
+    ) -> f32 {
         let handle_len = 0.18_f32;
-        if let (Some((s0, _)), Some((s1, _))) = (self.project(origin, rect), self.project(origin + axis * handle_len, rect)) {
+        if let (Some((s0, _)), Some((s1, _))) = (
+            self.project(origin, rect),
+            self.project(origin + axis * handle_len, rect),
+        ) {
             let d = s1 - s0;
             let l_sq = d.length_sq();
             if l_sq > 4.0 {
@@ -118,7 +132,13 @@ impl OrbitCamera {
     }
 
     /// Computes the angle swept around the projected origin by a mouse drag.
-    pub fn project_ring_angle(&self, origin: Point3<f32>, start_mouse: Pos2, curr_mouse: Pos2, rect: Rect) -> f32 {
+    pub fn project_ring_angle(
+        &self,
+        origin: Point3<f32>,
+        start_mouse: Pos2,
+        curr_mouse: Pos2,
+        rect: Rect,
+    ) -> f32 {
         if let Some((s_center, _)) = self.project(origin, rect) {
             let v_start = start_mouse - s_center;
             let v_curr = curr_mouse - s_center;
@@ -126,8 +146,12 @@ impl OrbitCamera {
                 let theta_start = v_start.y.atan2(v_start.x);
                 let theta_curr = v_curr.y.atan2(v_curr.x);
                 let mut diff = theta_curr - theta_start;
-                while diff > std::f32::consts::PI { diff -= std::f32::consts::TAU; }
-                while diff < -std::f32::consts::PI { diff += std::f32::consts::TAU; }
+                while diff > std::f32::consts::PI {
+                    diff -= std::f32::consts::TAU;
+                }
+                while diff < -std::f32::consts::PI {
+                    diff += std::f32::consts::TAU;
+                }
                 return diff.to_degrees();
             }
         }

@@ -92,7 +92,9 @@ pub fn render_manipulation_panel(
             EOATType::ParallelGripper => {
                 ui.horizontal(|ui| {
                     ui.label("Jaw Opening:");
-                    ui.add(Slider::new(&mut tool_state.gripper_opening, 0.0..=1.0).show_value(false));
+                    ui.add(
+                        Slider::new(&mut tool_state.gripper_opening, 0.0..=1.0).show_value(false),
+                    );
                     let pct = (tool_state.gripper_opening * 100.0) as u32;
                     ui.label(format!("{}%", pct));
                 });
@@ -212,7 +214,8 @@ pub fn render_manipulation_panel(
 
                     ui.horizontal(|ui| {
                         if ui.button("📍 Reach").clicked() {
-                            *target_pos = Point3::new(wp.position.x, wp.position.y, wp.position.z + 0.05);
+                            *target_pos =
+                                Point3::new(wp.position.x, wp.position.y, wp.position.z + 0.05);
                             *on_solve_requested = true;
                         }
                         if ui.button("❌").clicked() {
@@ -257,17 +260,11 @@ pub fn render_manipulation_panel(
     // 4. Environment Furnishing Toggles
     ui.group(|ui| {
         ui.strong("Workcell Furnishings:");
-        ui.checkbox(
-            &mut environment.show_table,
-            "Assembly Workstation Table",
-        );
+        ui.checkbox(&mut environment.show_table, "Assembly Workstation Table");
         ui.checkbox(
             &mut environment.show_safety_enclosure,
             "Safety Perimeter Enclosure",
         );
-        ui.checkbox(
-            &mut environment.show_pedestal,
-            "Industrial Ground Pedestal",
-        );
+        ui.checkbox(&mut environment.show_pedestal, "Industrial Ground Pedestal");
     });
 }

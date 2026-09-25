@@ -36,27 +36,39 @@ pub fn render_ik_panel(
         ui.horizontal(|ui| {
             if ui.button("◀ -X").clicked() {
                 target_pos.x -= 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
             if ui.button("+X ▶").clicked() {
                 target_pos.x += 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
             if ui.button("▲ +Y").clicked() {
                 target_pos.y += 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
             if ui.button("▼ -Y").clicked() {
                 target_pos.y -= 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
             if ui.button("⏫ +Z").clicked() {
                 target_pos.z += 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
             if ui.button("⏬ -Z").clicked() {
                 target_pos.z -= 0.03;
-                if *continuous_solve { *on_solve_requested = true; }
+                if *continuous_solve {
+                    *on_solve_requested = true;
+                }
             }
         });
         ui.small("💡 Use Keyboard Arrow Keys (and PageUp/PageDown) to jog the hand directly.");
@@ -73,19 +85,28 @@ pub fn render_ik_panel(
             .spacing([8.0, 4.0])
             .show(ui, |ui| {
                 ui.label("X Axis:");
-                if ui.add(DragValue::new(&mut target_pos.x).speed(0.01).suffix(" m")).changed() {
+                if ui
+                    .add(DragValue::new(&mut target_pos.x).speed(0.01).suffix(" m"))
+                    .changed()
+                {
                     pos_changed = true;
                 }
                 ui.end_row();
 
                 ui.label("Y Axis:");
-                if ui.add(DragValue::new(&mut target_pos.y).speed(0.01).suffix(" m")).changed() {
+                if ui
+                    .add(DragValue::new(&mut target_pos.y).speed(0.01).suffix(" m"))
+                    .changed()
+                {
                     pos_changed = true;
                 }
                 ui.end_row();
 
                 ui.label("Z Axis:");
-                if ui.add(DragValue::new(&mut target_pos.z).speed(0.01).suffix(" m")).changed() {
+                if ui
+                    .add(DragValue::new(&mut target_pos.z).speed(0.01).suffix(" m"))
+                    .changed()
+                {
                     pos_changed = true;
                 }
                 ui.end_row();
@@ -106,31 +127,40 @@ pub fn render_ik_panel(
             .spacing([8.0, 4.0])
             .show(ui, |ui| {
                 ui.label("Roll:");
-                if ui.add(
-                    DragValue::new(&mut target_rpy_deg[0])
-                        .speed(1.0)
-                        .suffix("°"),
-                ).changed() {
+                if ui
+                    .add(
+                        DragValue::new(&mut target_rpy_deg[0])
+                            .speed(1.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
                     rot_changed = true;
                 }
                 ui.end_row();
 
                 ui.label("Pitch:");
-                if ui.add(
-                    DragValue::new(&mut target_rpy_deg[1])
-                        .speed(1.0)
-                        .suffix("°"),
-                ).changed() {
+                if ui
+                    .add(
+                        DragValue::new(&mut target_rpy_deg[1])
+                            .speed(1.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
                     rot_changed = true;
                 }
                 ui.end_row();
 
                 ui.label("Yaw:");
-                if ui.add(
-                    DragValue::new(&mut target_rpy_deg[2])
-                        .speed(1.0)
-                        .suffix("°"),
-                ).changed() {
+                if ui
+                    .add(
+                        DragValue::new(&mut target_rpy_deg[2])
+                            .speed(1.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
                     rot_changed = true;
                 }
                 ui.end_row();
@@ -214,17 +244,11 @@ pub fn render_ik_panel(
                     ui.end_row();
 
                     ui.label("Adaptive SR Damping:");
-                    ui.checkbox(
-                        &mut params.adaptive_damping,
-                        "Singularity-Robust",
-                    );
+                    ui.checkbox(&mut params.adaptive_damping, "Singularity-Robust");
                     ui.end_row();
 
                     ui.label("Line-Search Verification:");
-                    ui.checkbox(
-                        &mut params.enable_line_search,
-                        "Monotonic Step Check",
-                    );
+                    ui.checkbox(&mut params.enable_line_search, "Monotonic Step Check");
                     ui.end_row();
                 });
         });
@@ -282,7 +306,10 @@ pub fn render_ik_panel(
                         ui.label("Manipulability Index:");
                         let text = format!("{:.4}", m_data.score);
                         if m_data.is_near_singularity {
-                            ui.colored_label(Color32::from_rgb(255, 60, 40), format!("{} (SINGULAR)", text));
+                            ui.colored_label(
+                                Color32::from_rgb(255, 60, 40),
+                                format!("{} (SINGULAR)", text),
+                            );
                         } else {
                             ui.monospace(text);
                         }
