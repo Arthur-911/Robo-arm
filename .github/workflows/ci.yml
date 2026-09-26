@@ -64,8 +64,23 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-wasm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-wasm-
+
       - name: Install Trunk
-        run: cargo install --locked trunk
+        uses: jetli/trunk-action@v0.5.1
+        with:
+          version: 'latest'
 
       - name: Build WASM Web Application
         run: trunk build --release --public-url /Robo-arm/
